@@ -1,0 +1,146 @@
+﻿@page "/pedidoservico"
+@using AppServicos.Services
+@using AppServicos.Models
+@inject ServicosService service
+
+<h3>Criação de Pedidos de Serviço</h3>
+
+<div class="form-group">
+    <label for="addServico">Serviço</label>
+    <div class="dropdown">
+        <button id="addServico" class="btn btn-light dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" @onclick="() => DropdownAberto = !DropdownAberto">
+            @(ServicoSelecionado != null ? ServicoSelecionado.Nome : "Selecione um serviço...")
+        </button>
+        <div class="@(DropdownAberto ? "dropdown-menu show" : "dropdown-menu")" aria-labelledby="addServico">
+            @foreach (Servico s in service.PedidoServicoAtual.Servicos)
+            {
+                @if (!ServicosAdicionados.Select(sv => sv.Id).Contains(s.Id))
+                {
+                    <a class="text-truncate dropdown-item" @onclick="() => GuardarIdSelecionado(s.Id)">@s.Nome</a>
+                }
+            }
+         </div>
+    </div>
+    <label for="horasServico">Horas de serviço</label>
+    <input type="number" class="form-control" step="1" required @bind="HorasServicoSelecionado" id="horasServico" />
+    
+    <button type="button" class="btn btn-primary mt-2" @onclick="AdicionarServicoSelecionado">Adicionar serviço</button>
+</div>
+
+@foreach (Servico s in ServicosAdicionados)
+{
+    <hr />
+    <div class="row">
+        <div class="col-10 text-truncate">
+            Serviço: @s.Nome
+        </div>
+        <div class="col-2">
+            <button type="button" class="btn btn-danger" @onclick="() => RemoverServicoSelecionado(s)">
+                Remover
+            </button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            Duração: @s.Horas horas
+        </div>
+    </div>
+}
+<hr />
+
+<div class="form-group">
+    <label for="profissionalServico">Nome do profissional executor</label>
+    <input type="text" class="form-control" @bind="service.PedidoServicoAtual.Profissional" id="profissionalExecutor" />
+
+    <label for="impostoServico">Imposto sobre o serviço prestado</label>
+    <input type="number" class="form-control" @bind="service.PedidoServicoAtual.Imposto" id="impostoServico" />
+
+    <button type="button" class="btn btn-primary mt-2" @onclick="() => PedidoGerado = true">Gerar pedido</button>
+</div>
+@if (PedidoGerado)
+{
+    <div class="alert alert-info">
+        <p>
+            O valor total do pedido é: @(Math.Round(ReceitaTotal, 2).ToString() + " R$.")
+        </p>
+        <p>
+            A porcentage de lucro do pedido para a empresa é de: @(Math.Round(PorcentagemLucro, 2).ToString() + "%.")
+        </p>
+    </div>
+}
+
+@code {
+
+    private bool DropdownAberto { get; set; }
+
+    List<Servico> ServicosAdicionados { get; set; }
+
+    bool PedidoGerado { get; set; }
+
+    Guid IdServicoSelecionado { get; set; }
+    int HorasServicoSelecionado { get; set; }
+
+    Servico ServicoSelecionado => service.PedidoServicoAtual.Servicos.Find(s => s.Id == IdServicoSelecionado);
+
+    public double ReceitaTotal => ServicosAdicionados
+                                        .Select(s => s.Valor)
+                                        .Aggregate((v1, v2) => v1 + v2);
+
+    public double ImpostosAdicionais => ReceitaTotal * (service.PedidoServicoAtual.Imposto / 100.0);
+
+    public double PorcentagemLucro => (ReceitaTotal * 100) / (ReceitaTotal + ImpostosAdicionais);
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        DropdownAberto = false;
+        ServicosAdicionados = new List<Servico>();
+        IdServicoSelecionado = Guid.Empty;
+        HorasServicoSelecionado = 0;
+        PedidoGerado = false;
+    }
+
+    private void GuardarIdSelecionado(Guid id) {
+
+        IdServicoSelecionado = id;
+
+        DropdownAberto = false;
+
+        StateHasChanged();
+
+    }
+
+    private void AdicionarServicoSelecionado()
+    {
+
+        try
+        {
+
+            ServicoSelecionado.Horas = HorasServicoSelecionado;
+
+            ServicosAdicionados.Add(ServicoSelecionado);
+
+            IdServicoSelecionado = Guid.Empty;
+
+            HorasServicoSelecionado = 1;
+
+            StateHasChanged();
+
+        }
+        catch (NullReferenceException e)
+        {
+            return;
+        }
+
+    }
+
+    private void RemoverServicoSelecionado(Servico s)
+    {
+
+        ServicosAdicionados.Remove(s);
+
+        StateHasChanged();
+
+    }
+
+}

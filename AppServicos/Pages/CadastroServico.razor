@@ -1,0 +1,64 @@
+﻿@page "/servico"
+@using AppServicos.Services
+@inject ServicosService service
+@inject NavigationManager navManager
+
+<h4 class="display-4">Cadastro de Serviço</h4>
+
+<div class="form-group">
+    <label for="servico">Nome do serviço</label>
+    <input type="text" class="form-control" id="servico" required @bind="NomeServico"/>
+</div>
+
+<div class="form-group">
+    <label for="servico">Valor da hora/venda</label>
+    <input type="number" class="form-control" id="servico" required @bind="ValorHoraServico"/>
+</div>
+
+<button type="button" @onclick="Salvar" class="btn btn-primary">Salvar</button>
+<button type="button" @onclick="Cancelar" class="btn btn-danger">Cancelar</button>
+
+@if (Adicionado == true)
+{
+    <div class="alert alert-success mt-4">
+        O Serviço foi adicionado com sucesso!
+    </div>
+} else if (Adicionado == false)
+{
+    <div class="alert alert-danger mt-4">
+        O Serviço já existe!
+    </div>
+}
+
+
+@code {
+
+    public string NomeServico { get; set; }
+    public double ValorHoraServico { get; set; }
+    public bool? Adicionado { get; set; }
+
+    public async Task Salvar() {
+        
+        bool adicionado = service.AdicionarServico(NomeServico, ValorHoraServico);
+        
+        Adicionado = adicionado;
+        
+        StateHasChanged();
+        
+        await Task.Delay(5000);
+        
+        Adicionado = null;
+        
+        StateHasChanged();
+    
+    }
+
+    public void Cancelar() => navManager.NavigateTo("/");
+
+    protected override void OnInitialized()
+    {
+        NomeServico = "";
+        ValorHoraServico = 1.0;
+    }
+
+}
